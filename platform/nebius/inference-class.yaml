@@ -1,0 +1,33 @@
+# One NVIDIA L40S 48GB on Nebius. Copied from Modelplane's
+# docs/manifests/getting-started/nebius/platform.yaml.
+#
+# devices is what the scheduler matches a deployment's CEL against, so memory
+# is the usable VRAM the DRA driver reports (46068Mi), not the nominal 48GB.
+# The workloads ask for at least 14Gi, so a replica fits here or on the A100.
+apiVersion: modelplane.ai/v1alpha1
+kind: InferenceClass
+metadata:
+  name: l40s-1x
+spec:
+  description: "Nebius gpu-l40s-a, 1x NVIDIA L40S 48GB"
+  provisioning:
+    provider: Nebius
+    nebius:
+      platform: gpu-l40s-a
+      preset: 1gpu-8vcpu-32gb
+      diskSizeGb: 100
+      driversPreset: cuda13.0
+      accelerator:
+        type: nvidia-l40s
+        count: 1
+  devices:
+  - name: gpu
+    claim: DRA
+    driver: gpu.nvidia.com
+    deviceClassName: gpu.nvidia.com
+    count: 1
+    attributes:
+      architecture: { string: Ada Lovelace }
+      cudaComputeCapability: { version: "8.9.0" }
+    capacity:
+      memory: { value: "46068Mi" }

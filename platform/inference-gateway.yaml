@@ -1,0 +1,21 @@
+# The EU gateway: the one address callers use, on the AKS cluster. Callers
+# authenticate with an API key; `make callers` creates the Secret it selects.
+#
+# serviceSelector scopes it to ModelServices labelled jurisdiction: eu, so an EU
+# service is reachable only through EU gateways. Without it, a gateway serves
+# every service.
+apiVersion: modelplane.ai/v1alpha1
+kind: InferenceGateway
+metadata:
+  name: eu
+spec:
+  clusterName: aks-swedencentral
+  auth:
+    method: APIKey
+    apiKey:
+      secretSelector:
+        matchLabels:
+          modelplane.ai/inference-keys: "true"
+  serviceSelector:
+    matchLabels:
+      jurisdiction: eu

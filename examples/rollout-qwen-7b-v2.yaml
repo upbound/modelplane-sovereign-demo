@@ -1,0 +1,68 @@
+# An engine upgrade without downtime. The new version runs as its own
+# ModelDeployment, qwen-7b-v2, and the ModelService sends it 10% of the
+# traffic while qwen-7b keeps the rest. Shift the weights as it proves itself,
+# then remove the qwen-7b endpoint and delete that deployment. Callers keep
+# calling ml-team/qwen-7b throughout. New weights or new flags follow the same
+# pattern: change those instead of the image.
+#
+# The change here is vLLM v0.9.2 to v0.23.0.
+#
+# The demo's lifecycle beat sends this as a server-side dry run: the API
+# validates both objects and the EU policy admits qwen-7b-v2, but nothing is
+# created. Applying it for real needs a free GPU for qwen-7b-v2.
+apiVersion: modelplane.ai/v1alpha1
+kind: ModelDeployment
+metadata:
+  name: qwen-7b-v2
+  namespace: ml-team
+spec:
+  replicas: 1
+  template:
+    spec:
+      clusterSelector:
+        matchLabels:
+          jurisdiction: eu
+      modelCacheRef:
+        name: qwen-7b
+      engines:
+      - name: qwen-7b
+        members:
+        - role: Standalone
+          nodeSelector:
+            devices:
+            - name: gpu
+              count: 1
+              selectors:
+              - cel: |
+                  device.capacity["gpu.nvidia.com"].memory.compareTo(quantity("14Gi")) >= 0
+          template:
+            spec:
+              containers:
+              - name: engine
+                image: vllm/vllm-openai:v0.23.0
+                args:
+                - --model=Qwen/Qwen2.5-7B-Instruct-AWQ
+                - --served-model-name=$(MODELPLANE_SERVED_MODEL_NAME)
+                - --max-model-len=8192
+                - --gpu-memory-utilization=0.85
+                - --enforce-eager
+---
+apiVersion: modelplane.ai/v1alpha1
+kind: ModelService
+metadata:
+  name: qwen-7b
+  namespace: ml-team
+  labels:
+    jurisdiction: eu
+spec:
+  endpoints:
+  - name: qwen-7b
+    weight: 9    # 90% of requests stay on qwen-7b
+    selector:
+      matchLabels:
+        modelplane.ai/deployment: qwen-7b
+  - name: qwen-7b-v2
+    weight: 1    # 10% try qwen-7b-v2
+    selector:
+      matchLabels:
+        modelplane.ai/deployment: qwen-7b-v2

@@ -1,0 +1,31 @@
+# The deployment the EU policy must reject: the same model with no
+# clusterSelector, so it could land on any cluster, UK South included.
+# `make policy-test` sends it as a server-side dry run into the demo's
+# namespace, so nothing is created.
+apiVersion: modelplane.ai/v1alpha1
+kind: ModelDeployment
+metadata:
+  name: qwen-anywhere
+spec:
+  replicas: 1
+  template:
+    spec:
+      engines:
+      - name: qwen-7b
+        members:
+        - role: Standalone
+          nodeSelector:
+            devices:
+            - name: gpu
+              count: 1
+              selectors:
+              - cel: |
+                  device.capacity["gpu.nvidia.com"].memory.compareTo(quantity("14Gi")) >= 0
+          template:
+            spec:
+              containers:
+              - name: engine
+                image: vllm/vllm-openai:v0.9.2
+                args:
+                - --model=Qwen/Qwen2.5-7B-Instruct-AWQ
+                - --served-model-name=$(MODELPLANE_SERVED_MODEL_NAME)

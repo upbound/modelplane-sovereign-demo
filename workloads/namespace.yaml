@@ -1,0 +1,8 @@
+# The ML team's namespace. jurisdiction: eu binds the EU-only policies in
+# policies/eu-only.yaml to everything created here.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ml-team
+  labels:
+    jurisdiction: eu

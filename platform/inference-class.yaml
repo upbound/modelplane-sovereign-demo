@@ -1,0 +1,27 @@
+# One NVIDIA A100 80GB on AKS. Copied from Modelplane's
+# docs/manifests/getting-started/aks/platform-scale.yaml.
+apiVersion: modelplane.ai/v1alpha1
+kind: InferenceClass
+metadata:
+  name: a100-1x
+spec:
+  description: "AKS Standard_NC24ads_A100_v4, 1x NVIDIA A100 80GB"
+  provisioning:
+    provider: AKS
+    aks:
+      vmSize: Standard_NC24ads_A100_v4
+      diskSizeGb: 100
+      accelerator:
+        type: nvidia-a100
+        count: 1
+  devices:
+  - name: gpu
+    claim: DRA
+    driver: gpu.nvidia.com
+    deviceClassName: gpu.nvidia.com
+    count: 1
+    attributes:
+      architecture: { string: Ampere }
+      cudaComputeCapability: { version: "8.0.0" }
+    capacity:
+      memory: { value: "81920Mi" }

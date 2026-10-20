@@ -1,0 +1,45 @@
+# Qwen2.5-7B (AWQ INT4, about 5.6 GB) on one GPU with at least 14 GiB, from
+# Modelplane's qwen2.5-7b recipe. The selector names no cluster or GPU model:
+# the A100 on AKS and the L40S on Nebius both qualify.
+#
+# clusterSelector keeps replicas on EU clusters, and modelCacheRef holds them to
+# clusters that carry the cache. It starts with one replica; the demo's scale
+# beat takes it to two, and the scheduler spreads the second onto the other
+# cluster:
+#   kubectl -n ml-team scale modeldeployment qwen-7b --replicas=2
+apiVersion: modelplane.ai/v1alpha1
+kind: ModelDeployment
+metadata:
+  name: qwen-7b
+  namespace: ml-team
+spec:
+  replicas: 1
+  template:
+    spec:
+      clusterSelector:
+        matchLabels:
+          jurisdiction: eu
+      modelCacheRef:
+        name: qwen-7b
+      engines:
+      - name: qwen-7b
+        members:
+        - role: Standalone
+          nodeSelector:
+            devices:
+            - name: gpu
+              count: 1
+              selectors:
+              - cel: |
+                  device.capacity["gpu.nvidia.com"].memory.compareTo(quantity("14Gi")) >= 0
+          template:
+            spec:
+              containers:
+              - name: engine
+                image: vllm/vllm-openai:v0.9.2
+                args:
+                - --model=Qwen/Qwen2.5-7B-Instruct-AWQ
+                - --served-model-name=$(MODELPLANE_SERVED_MODEL_NAME)
+                - --max-model-len=8192
+                - --gpu-memory-utilization=0.85
+                - --enforce-eager

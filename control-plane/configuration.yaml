@@ -1,0 +1,10 @@
+# The Modelplane Crossplane Configuration: a dev build of main at 3aaf55c, which
+# is v0.5.0 plus the AKS node pool fix (modelplaneai/modelplane#516) and
+# provider-kubernetes 1.4.1, with no API changes. Move this to the first release
+# that carries the fix.
+apiVersion: pkg.crossplane.io/v1
+kind: Configuration
+metadata:
+  name: modelplane
+spec:
+  package: xpkg.upbound.io/modelplane/modelplane:v0.1.0-dev.1791882270.g3aaf55c

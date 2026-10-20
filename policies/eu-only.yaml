@@ -1,0 +1,88 @@
+# Makes EU placement mandatory in namespaces labelled jurisdiction: eu.
+#
+# Modelplane's clusterSelector is opt-in: a ModelDeployment or ModelCache
+# without one can land on any cluster. These policies reject one that doesn't
+# select jurisdiction: eu. They run on the control plane, so they hold whatever
+# hardware the platform has.
+#
+# Not covered here, and worth adding before production: tolerations that would
+# let a deployment ignore a drain taint, and hand-written ModelEndpoints.
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: eu-only-model-deployments
+spec:
+  failurePolicy: Fail
+  matchConditions:
+  # Crossplane updates every XR it reconciles. Holding its own writes to the
+  # policy would stop reconciliation of anything created before the policy.
+  - name: not-crossplane
+    expression: >-
+      !request.userInfo.username.startsWith('system:serviceaccount:crossplane-system:')
+  matchConstraints:
+    resourceRules:
+    - apiGroups: [modelplane.ai]
+      apiVersions: ["*"]
+      operations: [CREATE, UPDATE]
+      resources: [modeldeployments]
+  validations:
+  - expression: >-
+      has(object.spec.template.spec.clusterSelector) &&
+      has(object.spec.template.spec.clusterSelector.matchLabels) &&
+      'jurisdiction' in object.spec.template.spec.clusterSelector.matchLabels &&
+      object.spec.template.spec.clusterSelector.matchLabels['jurisdiction'] == 'eu'
+    message: >-
+      ModelDeployments in this namespace must set
+      spec.template.spec.clusterSelector.matchLabels.jurisdiction: eu.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: eu-only-model-deployments
+spec:
+  policyName: eu-only-model-deployments
+  validationActions: [Deny]
+  matchResources:
+    namespaceSelector:
+      matchLabels:
+        jurisdiction: eu
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: eu-only-model-caches
+spec:
+  failurePolicy: Fail
+  matchConditions:
+  # Crossplane updates every XR it reconciles. Holding its own writes to the
+  # policy would stop reconciliation of anything created before the policy.
+  - name: not-crossplane
+    expression: >-
+      !request.userInfo.username.startsWith('system:serviceaccount:crossplane-system:')
+  matchConstraints:
+    resourceRules:
+    - apiGroups: [modelplane.ai]
+      apiVersions: ["*"]
+      operations: [CREATE, UPDATE]
+      resources: [modelcaches]
+  validations:
+  - expression: >-
+      has(object.spec.clusterSelector) &&
+      has(object.spec.clusterSelector.matchLabels) &&
+      'jurisdiction' in object.spec.clusterSelector.matchLabels &&
+      object.spec.clusterSelector.matchLabels['jurisdiction'] == 'eu'
+    message: >-
+      ModelCaches in this namespace must set
+      spec.clusterSelector.matchLabels.jurisdiction: eu.
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: eu-only-model-caches
+spec:
+  policyName: eu-only-model-caches
+  validationActions: [Deny]
+  matchResources:
+    namespaceSelector:
+      matchLabels:
+        jurisdiction: eu

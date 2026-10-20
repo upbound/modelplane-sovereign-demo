@@ -1,0 +1,76 @@
+# The fleet's metrics backend: one Prometheus on the AKS cluster's system pool
+# that every inference cluster's collector remote-writes to. Installed by
+# scripts/monitoring.sh with prometheus-community/prometheus 29.37.0.
+#
+# It scrapes nothing itself. Modelplane's collectors push modelplane_* series
+# to /api/v1/write, so this is only a store and a query API.
+#
+# The Nebius cluster's collector reaches it over the internet, so it listens
+# on a LoadBalancer with TLS and basic auth, both from the web config in the
+# prometheus-web Secret that scripts/monitoring.sh creates. The certificate is
+# issued for the LoadBalancer's IP by a CA the script generates.
+
+alertmanager:
+  enabled: false
+kube-state-metrics:
+  enabled: false
+prometheus-node-exporter:
+  enabled: false
+prometheus-pushgateway:
+  enabled: false
+
+# The reloader calls /-/reload over plain HTTP without credentials, which a
+# server with TLS and basic auth refuses. The web config is re-read on every
+# request anyway, and nothing here changes prometheus.yml at runtime.
+configmapReload:
+  prometheus:
+    enabled: false
+
+server:
+  extraFlags:
+  - web.enable-lifecycle
+  - web.enable-remote-write-receiver
+  extraArgs:
+    web.config.file: /etc/prometheus-web/web-config.yml
+  extraSecretMounts:
+  - name: prometheus-web
+    mountPath: /etc/prometheus-web
+    secretName: prometheus-web
+    readOnly: true
+
+  # The HTTP probes would need credentials; a TCP probe needs none.
+  tcpSocketProbeEnabled: true
+
+  # Remote write from two clusters can arrive a little out of order after a
+  # retry; accept it rather than drop it.
+  tsdb:
+    out_of_order_time_window: 10m
+
+  retention: 7d
+  persistentVolume:
+    enabled: true
+    size: 8Gi
+
+  # The system pool: the GPU node is for the engine.
+  nodeSelector:
+    kubernetes.azure.com/mode: system
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      memory: 2Gi
+
+  service:
+    type: LoadBalancer
+    servicePort: 9090
+    annotations:
+      # The port speaks TLS, so Azure's load balancer must probe TCP, not HTTP.
+      service.beta.kubernetes.io/port_9090_health-probe_protocol: tcp
+
+# No default scrape jobs: nothing here is scraped, and the server needs no
+# cluster-wide read access for service discovery.
+scrapeConfigs: null
+rbac:
+  create: false

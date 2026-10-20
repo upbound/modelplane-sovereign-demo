@@ -1,0 +1,22 @@
+# The fleet Prometheus on AKS. Grafana expands the variables at start:
+# PROMETHEUS_URL and GRAFANA_PROM_PASSWORD come from the env file
+# scripts/monitoring.sh writes to .secrets/monitoring/grafana.env, and the CA
+# certificate (public, not a secret) is mounted read-only.
+apiVersion: 1
+datasources:
+- name: Fleet Prometheus
+  uid: fleet-prometheus
+  type: prometheus
+  access: proxy
+  url: ${PROMETHEUS_URL}
+  isDefault: true
+  basicAuth: true
+  basicAuthUser: grafana
+  jsonData:
+    httpMethod: POST
+    timeInterval: 15s
+    tlsAuthWithCACert: true
+  secureJsonData:
+    basicAuthPassword: ${GRAFANA_PROM_PASSWORD}
+    tlsCACert: $__file{/etc/grafana/secrets/ca.crt}
+  editable: false

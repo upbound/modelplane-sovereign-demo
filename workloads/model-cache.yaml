@@ -1,0 +1,17 @@
+# Stages the weights once per matched cluster on RWX storage that the serving
+# stack provides (Azure Files on AKS), so a restart or a scale up skips the
+# download. The repo is public, so no Hugging Face token. clusterSelector keeps
+# the weights on EU clusters only.
+apiVersion: modelplane.ai/v1alpha1
+kind: ModelCache
+metadata:
+  name: qwen-7b
+  namespace: ml-team
+spec:
+  source: HuggingFace
+  huggingFace:
+    repo: Qwen/Qwen2.5-7B-Instruct-AWQ
+    sizeGiB: 10
+  clusterSelector:
+    matchLabels:
+      jurisdiction: eu

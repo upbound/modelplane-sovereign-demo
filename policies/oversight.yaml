@@ -1,0 +1,37 @@
+# Human in the loop: people read, the delivery pipeline writes.
+#
+# The ML team's members can view Modelplane's kinds in their namespace. A change
+# is a pull request; once a reviewer approves and it merges, Argo CD applies it
+# with its own service account, the only subject that can edit. Crossplane
+# aggregates every Modelplane kind into its crossplane-view and crossplane-edit
+# ClusterRoles.
+#
+# alice stands in for a member of the ML team: bind your identity provider's
+# group instead. The binding doesn't need the argocd namespace to exist.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ml-team-view
+  namespace: ml-team
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: crossplane-view
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: User
+  name: alice
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: gitops-edit
+  namespace: ml-team
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: crossplane-edit
+subjects:
+- kind: ServiceAccount
+  name: argocd-application-controller
+  namespace: argocd

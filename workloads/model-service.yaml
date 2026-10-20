@@ -1,0 +1,17 @@
+# The model as callers see it: ml-team/qwen-7b, at every gateway that serves
+# it. The jurisdiction label matches the EU gateway's serviceSelector.
+# A rollout adds a second endpoint entry here and shifts weight between them
+# (examples/rollout-qwen-7b-v2.yaml).
+apiVersion: modelplane.ai/v1alpha1
+kind: ModelService
+metadata:
+  name: qwen-7b
+  namespace: ml-team
+  labels:
+    jurisdiction: eu
+spec:
+  endpoints:
+  - name: qwen-7b
+    selector:
+      matchLabels:
+        modelplane.ai/deployment: qwen-7b

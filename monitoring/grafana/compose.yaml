@@ -1,0 +1,31 @@
+# Grafana on this laptop, with the fleet Prometheus on AKS as its datasource
+# and the Modelplane fleet dashboard. scripts/monitoring.sh grafana runs the
+# same container with `docker run`, for machines without the compose plugin;
+# with it, from the repository root:
+#
+#   docker compose -f monitoring/grafana/compose.yaml up -d
+#
+# .secrets/monitoring/grafana.env (PROMETHEUS_URL, GRAFANA_PROM_PASSWORD) and
+# .secrets/monitoring/ca.crt are written by `scripts/monitoring.sh up`.
+name: modelplane-monitoring
+services:
+  grafana:
+    image: grafana/grafana:12.4.13
+    container_name: modelplane-grafana
+    restart: unless-stopped
+    ports:
+    - 127.0.0.1:3000:3000
+    env_file:
+    - ../../.secrets/monitoring/grafana.env
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/modelplane-fleet.json
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+    - ./provisioning:/etc/grafana/provisioning:ro
+    - ./dashboards:/var/lib/grafana/dashboards:ro
+    - ../../.secrets/monitoring/ca.crt:/etc/grafana/secrets/ca.crt:ro

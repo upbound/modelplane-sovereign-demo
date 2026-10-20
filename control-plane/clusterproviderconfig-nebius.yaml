@@ -1,0 +1,22 @@
+# Points the Nebius provider at the credentials Secret that
+# scripts/nebius-credentials.sh creates. It must be named default: Nebius
+# InferenceClusters use it without further configuration, and Modelplane
+# reuses its credentials Secret to authenticate to the clusters it builds,
+# since Nebius clusters accept only Nebius IAM.
+#
+# projectID is a placeholder; the script replaces it with your project. The
+# project decides the region, so use one in eu-north1.
+apiVersion: nebius.m.upbound.io/v1beta1
+kind: ClusterProviderConfig
+metadata:
+  name: default
+spec:
+  identity:
+    type: ServiceAccount
+  credentials:
+    source: Secret
+    secretRef:
+      namespace: crossplane-system
+      name: nebius-credentials
+      key: credentials.json
+  projectID: project-e00example

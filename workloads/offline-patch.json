@@ -1,0 +1,1 @@
+[{"op": "add", "path": "/spec/template/spec/engines/0/members/0/template/spec/containers/0/env", "value": [{"name": "HF_HUB_OFFLINE", "value": "1"}]}]

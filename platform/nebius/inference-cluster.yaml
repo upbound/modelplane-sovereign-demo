@@ -1,0 +1,38 @@
+# One L40S cluster on Nebius mk8s, built by Modelplane, beside the AKS cluster:
+# two providers, one API.
+#
+# Where it runs: Nebius projects are bound to a region, and the cluster is
+# created in the project the Nebius ClusterProviderConfig named default sets
+# as its projectID (scripts/nebius-credentials.sh). Use a project in
+# eu-north1. The modelplane.ai/region label below is only metadata for
+# selectors; it doesn't move the cluster.
+#
+# Modelplane adds a CPU system pool and a Nebius shared filesystem for the
+# model cache (StorageClass modelplane-rwx-fs). Wait for this cluster to be
+# Ready before creating workloads that use the cache: if Nebius replaces a
+# node while the cluster settles, the cache volume can stay Pending
+# (modelplaneai/modelplane#494). To recover, drop the stale node from the
+# cache PVC on the Nebius cluster, and a live node picks it up:
+#   kubectl -n ml-team annotate pvc <cache-pvc> volume.kubernetes.io/selected-node-
+#
+# jurisdiction is the label the workloads and the EU policy select on.
+#
+# Tear down with foreground deletion, after what runs on it:
+#   kubectl delete inferencecluster nebius-eu-north --cascade=foreground
+apiVersion: modelplane.ai/v1alpha1
+kind: InferenceCluster
+metadata:
+  name: nebius-eu-north
+  labels:
+    modelplane.ai/region: eu-north
+    jurisdiction: eu
+spec:
+  cluster:
+    source: Nebius
+    nebius: {}
+  nodePools:
+  - name: gpu-l40s
+    className: l40s-1x
+    nodeCount: 1
+    minNodeCount: 1
+    maxNodeCount: 1

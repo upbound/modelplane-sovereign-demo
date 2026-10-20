@@ -1,0 +1,35 @@
+# Points every inference cluster's collector at the fleet Prometheus on AKS.
+# One object on the control plane: Modelplane renders it into the collector on
+# each cluster and copies the fleet-prometheus Secret there with it.
+#
+# scripts/monitoring.sh fills in PROMETHEUS_ADDRESS (the LoadBalancer's IP) and
+# creates the Secret in modelplane-system on the control plane:
+#   PROMETHEUS_PASSWORD  the collector user's basic-auth password
+#   PROMETHEUS_CA        the CA that issued the server's certificate
+#
+# The sink's typed `auth` block only composes bearer tokens, and Prometheus
+# checks basic auth, so the authenticator is a collector extension defined
+# below and referenced from the sink's config. Modelplane mounts each Secret
+# key as a file under /etc/modelplane/telemetry/<sink name>/ and sets it as an
+# environment variable, which is where ca_file and ${env:...} read them.
+apiVersion: modelplane.ai/v1alpha1
+kind: TelemetryDestination
+metadata:
+  name: fleet-prometheus
+spec:
+  sinks:
+  - name: prometheus
+    type: prometheus_remote_write
+    endpoint: https://PROMETHEUS_ADDRESS:9090/api/v1/write
+    secretRef:
+      name: fleet-prometheus
+    config:
+      auth:
+        authenticator: basicauth/prometheus
+      tls:
+        ca_file: /etc/modelplane/telemetry/prometheus/PROMETHEUS_CA
+  extensions:
+    basicauth/prometheus:
+      client_auth:
+        username: collector
+        password: ${env:PROMETHEUS_PASSWORD}

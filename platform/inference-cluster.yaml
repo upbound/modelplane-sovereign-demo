@@ -1,0 +1,29 @@
+# One A100 cluster on AKS in Sweden Central, built by Modelplane.
+#
+# The test subscription has GPU quota only there: 24 A100 vCPUs (one
+# Standard_NC24ads_A100_v4) and 12 D4s_v5 vCPUs for the system pool, which
+# Modelplane v0.5 fixes at Standard_D4s_v5 with up to two nodes. It also runs
+# the gateway (platform/inference-gateway.yaml).
+#
+# jurisdiction is the label the workloads and the EU policy select on.
+#
+# Tear down with foreground deletion, after what runs on it:
+#   kubectl delete inferencecluster aks-swedencentral --cascade=foreground
+apiVersion: modelplane.ai/v1alpha1
+kind: InferenceCluster
+metadata:
+  name: aks-swedencentral
+  labels:
+    modelplane.ai/region: swedencentral
+    jurisdiction: eu
+spec:
+  cluster:
+    source: AKS
+    aks:
+      location: swedencentral
+  nodePools:
+  - name: gpua100
+    className: a100-1x
+    nodeCount: 1
+    minNodeCount: 1
+    maxNodeCount: 1

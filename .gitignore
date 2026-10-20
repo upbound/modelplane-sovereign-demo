@@ -1,0 +1,14 @@
+# Service principal JSON, caller API keys and workload kubeconfigs.
+.secrets/
+*.kubeconfig
+
+# Rehearsal timings.
+.run/
+
+# TLS keys and env files, for testing a gateway with TLS.
+*.pem
+*.key
+.env
+
+# OpenSSL serial files, should one land outside .secrets/.
+*.srl
